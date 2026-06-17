@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Heliacal Rising Simulator</title>
+
+  <!-- Shared KL-UNL foundation styles (palette + layout classes) -->
+  <link rel="stylesheet" href="foundation/kl-unl.css">
+  <!-- Sim-specific styles, layered on top of the foundation (never edits it) -->
+  <link rel="stylesheet" href="styles/styles.css">
+
+  <!-- MathJax (vendored locally under assets/ — no CDN at runtime) -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']] },
+      options: { menuOptions: { settings: { inTabOrder: false } } },
+      startup: { typeset: false }
+    };
+  </script>
+  <script src="assets/mathjax/tex-svg.js" id="MathJax-script" async></script>
+</head>
+<body>
+  <a class="sr-only sr-only-focusable" href="#sky-diagram-panel">Skip to the horizon diagram</a>
+
+  <div class="app-shell">
+    <!-- Masthead component renders the H1 title plus Reset / Help / About -->
+    <kl-unl-masthead sim-id="heliacalrisingsim" json-url="foundation/contents.json"></kl-unl-masthead>
+
+    <main class="app-layout app-layout--heliacal">
+
+      <!-- ===================== HORIZON DIAGRAM (left) ===================== -->
+      <section class="panel panel--diagram" id="sky-diagram-panel" aria-labelledby="diagram-heading">
+        <h2 id="diagram-heading" class="sr-only">Horizon diagram</h2>
+        <div class="panel__canvas-wrap diagram-wrap">
+          <div id="sphere-diagram"
+               role="application"
+               tabindex="0"
+               aria-labelledby="diagram-heading"
+               aria-describedby="sky-status diagram-instructions">
+            <canvas id="sphere-canvas" width="440" height="440"></canvas>
+          </div>
+          <p id="diagram-instructions" class="sr-only">
+            Interactive horizon diagram. Drag to rotate the view, or use the arrow keys:
+            left and right rotate the horizon, up and down change the viewing altitude.
+          </p>
+        </div>
+      </section>
+
+      <!-- ===================== RIGHT COLUMN (stacked panels) ===================== -->
+      <div class="heliacal-right">
+
+        <!-- ---------- Day of Year ---------- -->
+        <section class="panel" aria-labelledby="doy-heading">
+          <h2 class="panel__heading" id="doy-heading">Day of Year</h2>
+          <div class="control-fieldset">
+            <div class="control-row doy-row">
+              <label class="control-row__label" for="doy-day">day of year:</label>
+              <input class="control-row__input" id="doy-day" type="number"
+                     inputmode="numeric" min="1" max="31" step="1" value="20">
+              <label class="sr-only" for="doy-month">month</label>
+              <select id="doy-month" class="hr-select">
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+              </select>
+            </div>
+
+            <div class="month-strip-wrap">
+              <canvas id="doy-strip" width="384" height="34" aria-hidden="true"></canvas>
+              <div id="doy-cursor" class="strip-cursor" role="slider" tabindex="0"
+                   aria-label="Day of year"
+                   aria-valuemin="1" aria-valuemax="365" aria-valuenow="79"
+                   aria-valuetext="March 20"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- Observer's Latitude ---------- -->
+        <section class="panel" aria-labelledby="lat-heading">
+          <h2 class="panel__heading" id="lat-heading">Observer's Latitude</h2>
+          <div class="control-fieldset lat-fieldset">
+            <div class="lat-left">
+              <label class="sr-only" for="loc-select">preset location</label>
+              <select id="loc-select" class="hr-select">
+                <option value="null">select location...</option>
+                <option value="40.8">Lincoln, NE</option>
+                <option value="30">Cairo, Egypt</option>
+              </select>
+
+              <div class="control-row lat-value-row">
+                <label class="control-row__label" for="lat-value">latitude:</label>
+                <input class="control-row__input" id="lat-value" type="number"
+                       inputmode="decimal" min="0" max="90" step="0.1" value="40.8">
+                <label class="sr-only" for="hemi-select">hemisphere</label>
+                <select id="hemi-select" class="hr-select hemi-select">
+                  <option value="N">&deg; N</option>
+                  <option value="S">&deg; S</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="lat-map-wrap">
+              <img id="lat-map" src="assets/worldmap.png" alt=""
+                   width="250" height="125" draggable="false">
+              <div id="lat-line" class="lat-line" role="slider" tabindex="0"
+                   aria-label="Observer latitude on world map"
+                   aria-valuemin="-90" aria-valuemax="90" aria-valuenow="40.8"
+                   aria-valuetext="40.8 degrees north"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- Star Position ---------- -->
+        <section class="panel" aria-labelledby="star-heading">
+          <h2 class="panel__heading" id="star-heading">Star Position</h2>
+          <div class="control-fieldset">
+            <div class="control-row star-select-row">
+              <label class="sr-only" for="star-select">star preset</label>
+              <select id="star-select" class="hr-select">
+                <option value="0">select a star...</option>
+                <option value="Sirius">Sirius</option>
+                <option value="Vega">Vega</option>
+              </select>
+            </div>
+            <div class="star-values">
+              <label class="control-row__label" for="dec-value">declination:</label>
+              <input class="control-row__input" id="dec-value" type="number"
+                     inputmode="decimal" min="-90" max="90" step="0.1" value="-16.7">
+              <span class="unit" id="dec-unit" aria-hidden="true">\(^{\circ}\)</span>
+
+              <label class="control-row__label" for="ra-value">right ascension:</label>
+              <input class="control-row__input" id="ra-value" type="number"
+                     inputmode="decimal" min="0" max="24" step="0.1" value="6.8">
+              <span class="unit" id="ra-unit" aria-hidden="true">\(\mathrm{h}\)</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ===================== TIMELINE (full width) ===================== -->
+      <section class="panel panel--timeline" aria-labelledby="timeline-heading">
+        <h2 class="panel__heading" id="timeline-heading">Daylight Hours and Star Visibility Timeline</h2>
+        <div class="control-fieldset timeline-fieldset">
+          <div class="timeline-wrap">
+            <canvas id="timeline-canvas" width="760" height="120" aria-hidden="true"></canvas>
+            <div id="tod-cursor" class="tod-cursor" role="slider" tabindex="0"
+                 aria-label="Time of day"
+                 aria-valuemin="0" aria-valuemax="24" aria-valuenow="12"
+                 aria-valuetext="noon"></div>
+          </div>
+
+          <fieldset class="control-fieldset lock-fieldset">
+            <legend class="sr-only">lock the time of day to</legend>
+            <div class="lock-layout">
+              <span class="lock-label" aria-hidden="true">lock the time of day to:</span>
+              <span class="control-choice"><input type="radio" name="lockTime" id="lock-twilightStart" value="twilightStart"><label for="lock-twilightStart">the start of twilight</label></span>
+              <div class="lock-mid">
+                <div class="lock-mid-row">
+                  <span class="control-choice"><input type="radio" name="lockTime" id="lock-sunrise" value="sunrise"><label for="lock-sunrise">sunrise</label></span>
+                  <span class="control-choice"><input type="radio" name="lockTime" id="lock-noon" value="noon"><label for="lock-noon">noon</label></span>
+                  <span class="control-choice"><input type="radio" name="lockTime" id="lock-sunset" value="sunset"><label for="lock-sunset">sunset</label></span>
+                </div>
+                <div class="lock-mid-row">
+                  <span class="control-choice"><input type="radio" name="lockTime" id="lock-starRise" value="starRise"><label for="lock-starRise">star rise</label></span>
+                  <span class="control-choice"><input type="radio" name="lockTime" id="lock-starSet" value="starSet"><label for="lock-starSet">star set</label></span>
+                </div>
+              </div>
+              <span class="control-choice"><input type="radio" name="lockTime" id="lock-twilightEnd" value="twilightEnd"><label for="lock-twilightEnd">the end of twilight</label></span>
+              <span class="control-choice"><input type="radio" name="lockTime" id="lock-noLock" value="noLock" checked><label for="lock-noLock">(don't lock)</label></span>
+            </div>
+          </fieldset>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Live region: announces meaningful state changes (on commit, not per drag tick) -->
+    <p id="sky-status" class="sr-only" aria-live="polite"></p>
+  </div>
+
+  <!-- Foundation equation helper (MathJax wrapper) -->
+  <script src="foundation/kl-unl.js"></script>
+  <!-- Masthead custom element -->
+  <script src="foundation/kl-unl-masthead.js"></script>
+  <!-- Simulation logic -->
+  <script src="simulation.js"></script>
+</body>
+</html>

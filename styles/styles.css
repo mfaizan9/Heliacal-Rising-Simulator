@@ -1,0 +1,247 @@
+/* ==========================================================================
+   Heliacal Rising Simulator — sim-specific styles.
+   Layered ON TOP of foundation/kl-unl.css; the foundation files are never edited.
+   All sizing in rem/em so it tracks the browser font setting and reflows at 200%.
+   ========================================================================== */
+
+/* Comfortably large, zoomable body type (foundation default is 0.9rem). */
+.app-shell {
+  font-size: 1.125rem;
+  padding-bottom: 0.5rem;
+}
+
+/* ---- Overall layout: diagram (left) + stacked panels (right), timeline below ---- */
+.app-layout--heliacal {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.heliacal-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.panel--timeline {
+  grid-column: 1 / -1;
+}
+
+.panel {
+  border: 1px solid var(--border-color, #767676);
+  border-radius: 4px;
+  padding-bottom: 0.5rem;
+}
+
+.panel__heading {
+  font-size: 1.1rem;
+  padding: 0.5rem 0.9rem 0.25rem;
+  border-bottom: 1px solid #d9d9d9;
+  margin-bottom: 0.5rem;
+}
+
+/* ---- Horizon diagram ---- */
+.panel--diagram {
+  background: #000;
+  border-color: #000;
+  padding: 0;               /* canvas fills the panel so its height matches the right column */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.diagram-wrap {
+  width: 100%;
+  padding: 0;
+}
+#sphere-diagram {
+  display: block;
+  outline-offset: 4px;
+}
+#sphere-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  touch-action: none;       /* dragging the sphere must not scroll/zoom the page */
+  cursor: grab;
+}
+#sphere-canvas:active { cursor: grabbing; }
+
+/* ---- Generic control rows / fields ---- */
+.control-fieldset { padding: 0 0.9rem 0.25rem; }
+
+.control-row__label { font-weight: normal; }
+
+/* Unify every form control (inputs + selects) to one consistent box:
+   same box-sizing, height, padding, border — so adjacent boxes line up. */
+.app-layout--heliacal input[type="number"],
+.app-layout--heliacal select {
+  box-sizing: border-box;
+  height: 2.4rem;
+  padding: 0.25rem 0.45rem;
+  font-size: 1rem;
+  line-height: 1.2;
+  color: var(--foreground-color, #1a1a1a);
+  background: var(--background-color, #fff);
+  border: 1px solid var(--border-color, #767676);
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+/* Consistent width for the four numeric entry boxes (day, latitude, dec, RA). */
+.control-row__input {
+  width: 4.75rem;
+  text-align: right;
+}
+
+.hr-select { max-width: 100%; }
+
+.unit { font-size: 1rem; }
+
+/* Day of Year */
+.doy-row {
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 0.5rem;
+}
+.month-strip-wrap {
+  position: relative;
+  margin-top: 0.6rem;
+}
+#doy-strip { display: block; width: 100%; height: auto; }
+
+/* Latitude panel */
+.lat-fieldset {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 0.6rem 0.75rem;
+  align-items: start;
+}
+.lat-left { display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+/* latitude:  [ 40.8 ]
+              [ ° N  ]   <- hemisphere select drops below the value box */
+.lat-value-row {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  grid-template-areas:
+    "label value"
+    "blank hemi";
+  align-items: center;
+  justify-content: start;
+  gap: 0.4rem 0.5rem;
+}
+.lat-value-row > .control-row__label { grid-area: label; }
+.lat-value-row > #lat-value { grid-area: value; }
+.lat-value-row > #hemi-select { grid-area: hemi; justify-self: stretch; }
+.hemi-select { width: auto; }
+.lat-map-wrap { position: relative; min-width: 0; }
+#lat-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #888;
+  user-select: none;
+  touch-action: none;
+}
+
+/* Star panel — both fields share one grid so their boxes (and units) line up
+   even though "right ascension:" is wider than "declination:". */
+.star-values {
+  display: grid;
+  grid-template-columns: max-content max-content max-content;
+  align-items: center;
+  justify-content: start;
+  gap: 0.45rem 0.5rem;
+}
+.star-select-row { margin-bottom: 0.4rem; }
+
+/* ---- A red draggable cursor used on the map and the month/time strips ---- */
+.strip-cursor,
+.lat-line,
+.tod-cursor {
+  position: absolute;
+  outline-offset: 2px;
+}
+
+/* Day-of-year and time-of-day cursors are upward-pointing red triangles
+   sitting just below their strip (matching the original Flash markers). */
+.strip-cursor,
+.tod-cursor {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 11px solid var(--cursor-color, #ee0a00);
+  transform: translateX(-7px);
+  cursor: ew-resize;
+}
+.tod-cursor.is-locked { cursor: default; }
+
+/* The day-of-year strip is black and white (its cursor is a black triangle). */
+.strip-cursor { --cursor-color: #1a1a1a; }
+
+/* Latitude line: a horizontal red line with outward arrowheads spanning the map */
+.lat-line {
+  left: 0;
+  width: 100%;
+  height: 0;
+  border-top: 2px solid #ee0a00;
+  transform: translateY(-1px);
+  cursor: ns-resize;
+}
+.lat-line::before,
+.lat-line::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+.lat-line::before { left: -1px;  border-right: 8px solid #ee0a00; }  /* points left  */
+.lat-line::after  { right: -1px; border-left: 8px solid #ee0a00; }   /* points right */
+
+/* ---- Timeline ---- */
+.timeline-fieldset { padding-top: 0.25rem; }
+.timeline-wrap { position: relative; width: 100%; }
+#timeline-canvas { display: block; width: 100%; height: auto; }
+
+.lock-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0.5rem 0 0;
+}
+/* Lock-time layout: single options on the top row; sunrise/noon/sunset on the
+   top of a centred middle block with star rise/star set beneath it. */
+.lock-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 0.4rem 1.5rem;
+}
+.lock-label { align-self: start; padding-top: 0.2rem; white-space: nowrap; }
+.lock-mid { display: flex; flex-direction: column; gap: 0.3rem; }
+.lock-mid-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  justify-content: center;
+}
+.control-choice { min-height: 1.75rem; }
+.control-choice label { font-size: 1rem; }
+
+/* ---- Phone-portrait: single column, panels stacked in reading order ---- */
+@media (max-width: 56rem) {
+  .app-layout--heliacal { grid-template-columns: 1fr; }
+  .heliacal-right { gap: 0.5rem; }
+}
+
+@media (max-width: 30rem) {
+  .lat-fieldset { grid-template-columns: 1fr; }
+  .app-shell { font-size: 1.0625rem; }
+}
+
+/* Respect reduced-motion: nothing here auto-animates, but keep transitions calm */
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto; }
+}

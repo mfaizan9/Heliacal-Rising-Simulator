@@ -1,0 +1,54 @@
+================================================================================
+ADDITIONAL PROMPTS — Heliacal Rising Simulator (HTML5)
+Follow-up requests made after the initial Flash->HTML5 conversion, in order.
+Each was applied to the html5/ output and verified live in the browser preview.
+================================================================================
+
+1. Day-of-year month strip cursor
+   Prompt: "should be black and white."
+   (Selected element: #doy-strip month strip.)
+   -> Changed the day-of-year strip cursor from red to a black triangle
+      (timeline and latitude cursors left red, matching the original).
+
+2. Month strip text
+   Prompt: "the text in the month boxes seems blur."
+   -> Rendered the #doy-strip canvas at its true displayed size x devicePixelRatio
+      (1:1 device pixels) instead of a fixed 384px backing stretched by CSS, and
+      made it redraw crisply on resize.
+
+3. Form control sizing
+   Prompt: "the length and width of text boxes should be consistent
+            for example, the height of latitude box doesn't match with the box
+            adjacent to it"
+   -> Unified all inputs + selects to one box model (box-sizing:border-box, same
+      height, padding, border); made the four numeric entry boxes a uniform width.
+
+4. Hemisphere selector position
+   Prompt: "the position of this box should be below the box on the left of it"
+   (Selected element: #hemi-select, the "deg N / deg S" select.)
+   -> Restacked the latitude row so the hemisphere select sits on its own row
+      directly below the latitude value box (matching the original Flash layout).
+
+5. Right ascension box alignment
+   Prompt: "this box should be left aligned to the upper box"
+   (Selected element: #ra-value.)
+   -> Put declination and right-ascension fields in one shared grid so their boxes
+      (and the deg / h unit symbols) align, despite the differing label widths.
+
+6. Lock-time radio button arrangement
+   Prompt: "buttons at the bottom should be in this manner." (with reference image)
+   -> Arranged the lock-time options into the original two-row layout: the single
+      options (start of twilight, sunrise, noon, sunset, end of twilight, don't
+      lock) on the top row, with "star rise" / "star set" centered on a second row
+      beneath the sun cluster; kept a single accessible <fieldset> group.
+
+7. Diagram box height
+   Prompt: "the height of this box should be equal to the total height of right
+            three boxes, but keep the aspect ratio intact"
+   (Selected element: #sphere-canvas.)
+   -> Widened the left grid column to equal the right column's stacked height so
+      the square (1:1) sphere canvas's height matches the three right panels;
+      clamped for usable right-column width and cleared in the single-column
+      (phone) layout.
+
+================================================================================
