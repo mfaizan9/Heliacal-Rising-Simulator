@@ -384,10 +384,13 @@ Sphere.prototype.render = function (ctx) {
 };
 Sphere.prototype.drawHorizonPlane = function (ctx) {
   if (this.phi <= 0) return;
+  // The original rotates the disc sprite by theta and THEN scales y by sin(phi)
+  // (parent scale applied after child rotation), so the outline is an AXIS-ALIGNED
+  // ellipse (horizontal major axis = R, vertical minor axis = R*sin(phi)); only the
+  // texture/labels orbit with theta. The view altitude (phi) opens/closes it (tilt).
   var rx = R, ry = R * Math.sin(this.phi);
   ctx.save();
   ctx.translate(CX, CY);
-  ctx.rotate(this.theta);                // rotation 180+theta; 180 is symmetric for an ellipse
   ctx.scale(1, ry / rx);
   var grad = ctx.createRadialGradient(0, 0, rx * 0.05, 0, 0, rx);
   grad.addColorStop(0, '#57b24c');
