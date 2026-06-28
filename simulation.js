@@ -427,21 +427,43 @@ Sphere.prototype.drawObjects = function (ctx, side) {
   }
 };
 Sphere.prototype.drawStickfigure = function (ctx) {
-  // Observer stands at the centre of the horizon plane (horizon origin -> centre).
-  var x = CX, y = CY, s = 1.2;       // _xscale/_yscale = 120
+  // Observer at the horizon origin, oriented with the "absolute" billboard math from
+  // CSObjectsClass (oType 2): normal = (-1,0,0), up = (0,0,1) in horizon coords. This
+  // skews/foreshortens the figure so it stands on (and rotates/tilts with) the plane.
+  var c = this.c;
+  var p = { x: 0, y: 0, z: 0 }, n = { x: -1, y: 0, z: 0 }, u = { x: 0, y: 0, z: 1 };
+  var sp = this.WtoSz(p);
+  var spn = this.WtoSz({ x: p.x + n.x, y: p.y + n.y, z: p.z + n.z });
+  var spu = this.WtoSz({ x: p.x + u.x, y: p.y + u.y, z: p.z + u.z });
+  var npz = (n.x * c.a6 + n.y * c.a7 + n.z * c.a8) / R;       // normal's screen-z (normalized)
+  if (npz === 0) return;                                       // edge-on (looking straight down)
+  var A = Math.atan2(spn.y - sp.y, spn.x - sp.x) + HALF_PI;    // shell rotation
+  var cA = Math.cos(A), sA = Math.sin(A);
+  var x0 = spu.x - sp.x, y0 = spu.y - sp.y;
+  var x1 = cA * x0 + sA * y0, y1 = -sA * x0 + cA * y0;
+  var instRot = Math.atan2(y1 / npz, x1) + HALF_PI;            // art rotation within the shell
+
   ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(s, s);
-  ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
-  ctx.lineWidth = 1.6; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.arc(0, -16, 3.2, 0, TWO_PI); ctx.fill();        // head
-  ctx.beginPath();
-  ctx.moveTo(0, -12.5); ctx.lineTo(0, 0);                             // body
-  ctx.moveTo(0, -9); ctx.lineTo(-5, -4); ctx.moveTo(0, -9); ctx.lineTo(5, -4); // arms
-  ctx.moveTo(0, 0); ctx.lineTo(-4, 9); ctx.moveTo(0, 0); ctx.lineTo(4, 9);     // legs
-  ctx.stroke();
+  ctx.translate(CX + sp.x, CY + sp.y);   // figure position (sphere centre)
+  ctx.rotate(A);                          // shell._rotation
+  ctx.scale(1, npz);                      // shell._yscale (xscale = 1)
+  ctx.rotate(instRot);                    // instance._rotation
+  ctx.scale(1.2, 1.2);                    // initObject _xscale/_yscale = 120
+  drawFigureArt(ctx);
   ctx.restore();
 };
+// Stick-figure art in its local frame: feet at the origin, standing "up" along -y.
+function drawFigureArt(ctx) {
+  ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
+  ctx.lineWidth = 1.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  var hip = -12, sh = -22, head = -27;
+  ctx.beginPath();
+  ctx.moveTo(0, hip); ctx.lineTo(-4, 0); ctx.moveTo(0, hip); ctx.lineTo(4, 0);   // legs to feet
+  ctx.moveTo(0, hip); ctx.lineTo(0, sh);                                          // torso
+  ctx.moveTo(0, sh + 2); ctx.lineTo(-5, sh + 7); ctx.moveTo(0, sh + 2); ctx.lineTo(5, sh + 7); // arms
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, head, 3.2, 0, TWO_PI); ctx.fill();                  // head
+}
 function drawSun(ctx, x, y) {
   var rr = 9;
   var g = ctx.createRadialGradient(x, y, 1, x, y, rr);
@@ -1031,6 +1053,7 @@ function renderAll() {
   var tc = document.getElementById('timeline-canvas');
   timeline.render(timelineCtx, 760);
   positionTodCursor();
+  updateDiagramDesc();          // keep the canvas's text equivalent in sync with state
 }
 
 /* ----------------------------------------------------------------------------
@@ -1043,24 +1066,70 @@ function timeString(frac) {
   var h12 = hh % 12; if (h12 === 0) h12 = 12;
   return h12 + ':' + (mm < 10 ? '0' : '') + mm + ' ' + ap;
 }
+// Spoken number: screen readers often drop a leading "-" glyph, so say "minus".
+function spokenNum(x, digits) {
+  var s = toFixedAS(x, digits);
+  return (s.charAt(0) === '-') ? 'minus ' + s.slice(1) : s;
+}
+// Which star is selected? (preset name, or "a custom star")
+function starDisplayName() {
+  for (var i = 0; i < STARS.length; i++) {
+    if (Math.abs(STARS[i].ra - state.rightAscension) < 1e-12 &&
+        Math.abs(STARS[i].dec - state.declination) < 1e-12) { return 'the star ' + STARS[i].name; }
+  }
+  return 'a custom star';
+}
+// Shared visibility phrase (matches the on-screen timeline wording), units-complete.
+function visibilityPhrase() {
+  if (!timeline.isRiseAndSet) {
+    var cosA = (-Math.sin(timeline.declination) * Math.sin(timeline.latitude)) /
+               (Math.cos(timeline.declination) * Math.cos(timeline.latitude));
+    return (cosA >= 1) ? 'The star never rises.' : 'The star never sets.';
+  }
+  return 'The star is above the horizon for part of the day.';
+}
+// Polite live region, debounced so continuous drag/key changes are coalesced
+// (announced on settle, not per tick) and never read twice in a row.
+var _statusTimer = null, _statusPending = null, _statusLast = '';
+function setStatus(text) {
+  _statusPending = text;
+  if (_statusTimer) clearTimeout(_statusTimer);
+  _statusTimer = setTimeout(function () {
+    _statusTimer = null;
+    if (_statusPending === _statusLast) return;   // avoid duplicate announcements
+    _statusLast = _statusPending;
+    document.getElementById('sky-status').textContent = _statusPending;
+  }, 140);
+}
 function announce() {
   var cal = calendarFromDOY(state.dayOfYearZB);
   var msg = MONTH_LONG[cal.month] + ' ' + cal.day + '. ';
   msg += 'Latitude ' + toFixedAS(Math.abs(state.latitude), 1) + ' degrees ' +
          (state.latitude >= 0 ? 'north' : 'south') + '. ';
-  msg += 'Star declination ' + toFixedAS(state.declination, 1) + ' degrees, right ascension ' +
+  msg += 'Star declination ' + spokenNum(state.declination, 1) + ' degrees, right ascension ' +
          toFixedAS(state.rightAscension, 1) + ' hours. ';
-  if (!timeline.isRiseAndSet) {
-    var cosA = (-Math.sin(timeline.declination) * Math.sin(timeline.latitude)) /
-               (Math.cos(timeline.declination) * Math.cos(timeline.latitude));
-    msg += (cosA >= 1) ? 'The star never rises.' : 'The star never sets.';
-  } else {
-    msg += 'The star is above the horizon for part of the day.';
-  }
+  msg += visibilityPhrase();
   if (state.lockMode !== 'noLock') {
     msg += ' Time of day locked to ' + lockLabel(state.lockMode) + '.';
   }
-  document.getElementById('sky-status').textContent = msg;
+  setStatus(msg);
+}
+// Text equivalent of the canvas, kept in sync with state (read on focus / on demand;
+// this element is NOT a live region, so it does not interrupt).
+function updateDiagramDesc() {
+  var el = document.getElementById('diagram-desc');
+  if (!el) return;
+  var cal = calendarFromDOY(state.dayOfYearZB);
+  var txt = 'Horizon diagram for an observer at latitude ' +
+    toFixedAS(Math.abs(state.latitude), 1) + ' degrees ' + (state.latitude >= 0 ? 'north' : 'south') +
+    ' on ' + MONTH_LONG[cal.month] + ' ' + cal.day + '. ' +
+    'It shows the green horizon plane with the north, east, south and west directions, ' +
+    'the observer, the Sun, and ' + starDisplayName() + ' at declination ' +
+    spokenNum(state.declination, 1) + ' degrees and right ascension ' +
+    toFixedAS(state.rightAscension, 1) + ' hours. ' + visibilityPhrase() +
+    ' The view is rotated ' + Math.round(sphere.getThetaDeg()) +
+    ' degrees in azimuth and tilted ' + Math.round(sphere.getPhiDeg()) + ' degrees in altitude.';
+  el.textContent = txt;
 }
 function lockLabel(mode) {
   return ({ twilightStart: 'the start of twilight', sunrise: 'sunrise', noon: 'noon',
@@ -1201,9 +1270,8 @@ function wireSphereDrag() {
   canvas.addEventListener('pointercancel', end);
 }
 function announceView() {
-  document.getElementById('sky-status').textContent =
-    'View: horizon rotation ' + Math.round(sphere.getThetaDeg()) +
-    ' degrees, altitude ' + Math.round(sphere.getPhiDeg()) + ' degrees.';
+  setStatus('View rotated to azimuth ' + Math.round(sphere.getThetaDeg()) +
+    ' degrees, altitude ' + Math.round(sphere.getPhiDeg()) + ' degrees.');
 }
 function wireSphereKeys() {
   var diagram = document.getElementById('sphere-diagram');

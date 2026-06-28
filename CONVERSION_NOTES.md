@@ -110,10 +110,13 @@ modes are ported line-for-line.
    body + a translucent back-overlay (back elements read dimmer; front elements bright),
    which matches the original's appearance closely. (Goal C is below behaviour and
    accessibility in priority.)
-3. **Object billboard skew not reproduced.** The Sun/star "absolute" orientation applied
-   a small depth-based `yscale`/rotation; the port draws them as upright billboards at
-   the exact projected position (the visual difference is negligible for small round
-   sprites).
+3. **Object billboard.** The stick figure's "absolute" orientation
+   (`setOrientationType("absolute", normal=(-1,0,0), up=(0,0,1))`) is ported faithfully
+   from `CSObjectsClass` oType 2, so the figure skews/foreshortens and rotates/tilts with
+   the horizon plane as the view changes. The Sun and star also use "absolute" orientation
+   in the source, but with the auto-computed radial normal; since they are small round
+   sprites their billboard skew is not visually meaningful, so they are drawn as upright
+   billboards at the exact projected position.
 4. **Numeric fields show the plain number.** A value like `0` displays as `0`, where the
    Flash field would show `0.0`; the underlying value and snapping (to 0.1 / integer)
    are identical. The original "sliders" already render as numeric fields (their bar and

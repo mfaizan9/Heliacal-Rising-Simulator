@@ -8,7 +8,7 @@
   <!-- Shared KL-UNL foundation styles (palette + layout classes) -->
   <link rel="stylesheet" href="foundation/kl-unl.css">
   <!-- Sim-specific styles, layered on top of the foundation (never edits it) -->
-  <link rel="stylesheet" href="styles/styles.css?v=2">
+  <link rel="stylesheet" href="styles/styles.css?v=3">
 
   <!-- MathJax (vendored locally under assets/ — no CDN at runtime) -->
   <script>
@@ -37,9 +37,12 @@
                role="application"
                tabindex="0"
                aria-labelledby="diagram-heading"
-               aria-describedby="sky-status diagram-instructions">
+               aria-describedby="diagram-desc diagram-instructions">
             <canvas id="sphere-canvas" width="440" height="440"></canvas>
           </div>
+          <!-- Text equivalent of the canvas, updated from state (not a live region;
+               read on focus / when the description is requested). -->
+          <p id="diagram-desc" class="sr-only"></p>
           <p id="diagram-instructions" class="sr-only">
             Interactive horizon diagram. Drag to rotate the view, or use the arrow keys:
             left and right rotate the horizon, up and down change the viewing altitude.
@@ -55,7 +58,7 @@
           <h2 class="panel__heading" id="doy-heading">Day of Year</h2>
           <div class="control-fieldset">
             <div class="control-row doy-row">
-              <label class="control-row__label" for="doy-day">day of year:</label>
+              <label class="control-row__label" for="doy-day">day of year:<span class="sr-only"> day of the selected month</span></label>
               <input class="control-row__input" id="doy-day" type="number"
                      inputmode="numeric" min="1" max="31" step="1" value="20">
               <label class="sr-only" for="doy-month">month</label>
@@ -98,13 +101,14 @@
               </select>
 
               <div class="control-row lat-value-row">
-                <label class="control-row__label" for="lat-value">latitude:</label>
+                <label class="control-row__label" for="lat-value">latitude:<span class="sr-only"> in degrees</span></label>
                 <input class="control-row__input" id="lat-value" type="number"
                        inputmode="decimal" min="0" max="90" step="0.1" value="40.8">
-                <label class="sr-only" for="hemi-select">hemisphere</label>
-                <select id="hemi-select" class="hr-select hemi-select">
-                  <option value="N">&deg; N</option>
-                  <option value="S">&deg; S</option>
+                <label class="sr-only" for="hemi-select">hemisphere, north or south</label>
+                <select id="hemi-select" class="hr-select hemi-select"
+                        aria-label="hemisphere, north or south">
+                  <option value="N" aria-label="degrees north">&deg; N</option>
+                  <option value="S" aria-label="degrees south">&deg; S</option>
                 </select>
               </div>
             </div>
@@ -133,12 +137,12 @@
               </select>
             </div>
             <div class="star-values">
-              <label class="control-row__label" for="dec-value">declination:</label>
+              <label class="control-row__label" for="dec-value">declination:<span class="sr-only"> in degrees</span></label>
               <input class="control-row__input" id="dec-value" type="number"
                      inputmode="decimal" min="-90" max="90" step="0.1" value="-16.7">
               <span class="unit" id="dec-unit" aria-hidden="true">\(^{\circ}\)</span>
 
-              <label class="control-row__label" for="ra-value">right ascension:</label>
+              <label class="control-row__label" for="ra-value">right ascension:<span class="sr-only"> in hours</span></label>
               <input class="control-row__input" id="ra-value" type="number"
                      inputmode="decimal" min="0" max="24" step="0.1" value="6.8">
               <span class="unit" id="ra-unit" aria-hidden="true">\(\mathrm{h}\)</span>
@@ -193,6 +197,6 @@
   <!-- Masthead custom element -->
   <script src="foundation/kl-unl-masthead.js"></script>
   <!-- Simulation logic -->
-  <script src="simulation.js?v=2"></script>
+  <script src="simulation.js?v=4"></script>
 </body>
 </html>

@@ -82,3 +82,79 @@ trap Tab.
 - Pointer Events drive mouse + touch through one path; `touch-action: none` on the
   draggable canvases/map prevents the page from scrolling during a drag. Interactive
   targets meet the ≥44px minimum; no hover-only affordances.
+
+---
+
+## AUDIO / SCREEN-READER PASS
+
+A narration-only retrofit so the simulation is usable by audio alone (target: NVDA on
+Windows, VoiceOver on macOS). **No behavior, layout, visual, physics, or on-screen text
+was changed** — only screen-reader semantics were added. All new markup uses the
+existing `.sr-only` class; new logic is in `simulation.js`; foundation files untouched.
+*Final confirmation still requires a human listening test on NVDA (Windows) and
+VoiceOver (macOS) — this pass reasons about the accessibility tree only and must not be
+claimed as verified.*
+
+### Values made units-complete (quantity + number + unit, spoken as words)
+The unit was previously shown only as a visual MathJax glyph (`aria-hidden`), so values
+read as bare numbers. Each value field's accessible name now carries its unit in words
+(visible text unchanged; the `.sr-only` suffix is appended inside the `<label>`):
+
+| Control | Spoken accessible name | Value read |
+|---|---|---|
+| `#dec-value` declination | "declination: in degrees" | native number, e.g. "minus 16.7" |
+| `#ra-value` right ascension | "right ascension: in hours" | e.g. "6.8" |
+| `#lat-value` latitude | "latitude: in degrees" | e.g. "40.8" |
+| `#doy-day` day | "day of year: day of the selected month" | e.g. "20" |
+| `#hemi-select` hemisphere | "hemisphere, north or south"; options `aria-label` "degrees north" / "degrees south" | — |
+
+Custom sliders already expose units via `aria-valuetext`, updated on every change:
+- Day-of-year cursor → e.g. **"March 20"** (label "Day of year").
+- Latitude map line → e.g. **"40.8 degrees north"** (label "Observer latitude on world map").
+- Time-of-day cursor → e.g. **"noon" / "6:30 AM"** (label "Time of day").
+
+### Negative values
+`spokenNum()` replaces a leading "-" glyph (often dropped by readers) with the word
+**"minus"** in every spoken string (live region + canvas description). Declination is the
+only signed quantity; e.g. the live region says *"Star declination minus 16.7 degrees"*.
+(RA 0–24 h and latitude — shown unsigned with a north/south word — never need it.)
+
+### Unit-word mappings applied
+`°` → "degrees"; `h` (right ascension) → "hours"; hemisphere `° N` / `° S` →
+"degrees north" / "degrees south"; leading `-` → "minus". The visual `°` / `h` remain
+MathJax-typeset and are marked `aria-hidden` so they are not double-read.
+
+### Live status region (`#sky-status`, `aria-live="polite"`)
+Updated on **commit** (field change, drag release, slider key, lock change, reset) via a
+**140 ms debounce** (`setStatus`) so continuous drag/key changes are coalesced into one
+announcement and an identical message is never repeated. Wording (units-complete, matches
+on-screen text), e.g.:
+> "March 20. Latitude 40.8 degrees north. Star declination minus 16.7 degrees, right
+> ascension 6.8 hours. The star is above the horizon for part of the day."
+
+Visibility phrasing matches the timeline exactly: *"The star never rises." /
+"The star never sets." / "The star is above the horizon for part of the day."* When a
+lock is active it appends *"Time of day locked to the start of twilight."* etc. View
+rotation (drag/arrow keys) announces *"View rotated to azimuth 150 degrees, altitude 35
+degrees."*
+
+### Canvas description (the `<canvas>` is invisible to readers)
+A dedicated, **non-live** `#diagram-desc` (`.sr-only`) is referenced by the diagram's
+`aria-describedby` (alongside the operating instructions) and is rebuilt from state on
+every `render()` via `updateDiagramDesc()`. Because it is not a live region it does not
+interrupt; it is read when the diagram receives focus / on demand. Example:
+> "Horizon diagram for an observer at latitude 40.8 degrees north on March 20. It shows
+> the green horizon plane with the north, east, south and west directions, the observer,
+> the Sun, and the star Sirius at declination minus 16.7 degrees and right ascension 6.8
+> hours. The star is above the horizon for part of the day. The view is rotated 150
+> degrees in azimuth and tilted 35 degrees in altitude."
+
+The sphere and timeline canvases are `aria-hidden`/decorative at the pixel level; the
+world-map `<img>` is `alt=""`. The diagram container is `role="application"` so arrow
+keys reach the rotation handler.
+
+### Standards / compatibility
+Standard ARIA only (`aria-live`, `aria-valuetext`, `aria-label`, `aria-describedby`,
+`role="slider"`/`"application"`, `.sr-only`) — no reader-specific hacks — so it targets
+both NVDA and VoiceOver. MathJax typesetting, responsiveness, layout, and physics were
+re-checked and remain intact after the pass.
