@@ -453,16 +453,23 @@ Sphere.prototype.drawStickfigure = function (ctx) {
   ctx.restore();
 };
 // Stick-figure art in its local frame: feet at the origin, standing "up" along -y.
+// Drawn with a white halo under the black figure so it stays legible against the dark
+// sphere (a black figure alone can vanish into the background when foreshortened edge-on).
 function drawFigureArt(ctx) {
-  ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
-  ctx.lineWidth = 1.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   var hip = -12, sh = -22, head = -27;
-  ctx.beginPath();
-  ctx.moveTo(0, hip); ctx.lineTo(-4, 0); ctx.moveTo(0, hip); ctx.lineTo(4, 0);   // legs to feet
-  ctx.moveTo(0, hip); ctx.lineTo(0, sh);                                          // torso
-  ctx.moveTo(0, sh + 2); ctx.lineTo(-5, sh + 7); ctx.moveTo(0, sh + 2); ctx.lineTo(5, sh + 7); // arms
-  ctx.stroke();
-  ctx.beginPath(); ctx.arc(0, head, 3.2, 0, TWO_PI); ctx.fill();                  // head
+  function limbs() {
+    ctx.beginPath();
+    ctx.moveTo(0, hip); ctx.lineTo(-4, 0); ctx.moveTo(0, hip); ctx.lineTo(4, 0);   // legs to feet
+    ctx.moveTo(0, hip); ctx.lineTo(0, sh);                                          // torso
+    ctx.moveTo(0, sh + 2); ctx.lineTo(-5, sh + 7); ctx.moveTo(0, sh + 2); ctx.lineTo(5, sh + 7); // arms
+  }
+  // white outline / halo
+  limbs(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3.6; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, head, 4.5, 0, TWO_PI); ctx.fillStyle = '#ffffff'; ctx.fill();
+  // black figure on top
+  limbs(); ctx.strokeStyle = '#000000'; ctx.lineWidth = 1.4; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, head, 3.2, 0, TWO_PI); ctx.fillStyle = '#000000'; ctx.fill();
 }
 function drawSun(ctx, x, y) {
   var rr = 9;
